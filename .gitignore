@@ -1,0 +1,43 @@
+# Monorepo ignores for JobPulse (backend + frontend)
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build outputs
+backend/dist/
+frontend/dist/
+
+# Runtime uploads and generated assets
+backend/uploads/
+
+# Environment files (keep .env.example tracked)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs and debug
+logs/
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+debug.log
+
+# TypeScript build info
+**/*.tsbuildinfo
+
+# Coverage reports
+coverage/
+
+# IDE/editor artifacts
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Cache/temp directories
+.cache/
+.temp/

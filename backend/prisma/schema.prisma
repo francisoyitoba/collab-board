@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SEEKER
+  EMPLOYER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  role          UserRole
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  seekerProfile  SeekerProfile?
+  employerProfile EmployerProfile?
+  jobPostings    JobPosting[]
+  chatParticipants ChatRoomParticipant[] 
+  sentMessages   Message[]    @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  applications   Application[] @relation("SeekerApplications")
+  receivedApplications Application[] @relation("EmployerApplications")
+  applicationActivities ApplicationActivity[]
+}
+
+model SeekerProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  bio           String?   @db.Text
+  location      String?
+  availability  String?
+  cvUrl         String?
+  parsedCvText  String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  skills        SeekerSkill[]
+}
+
+model SeekerSkill {
+  id            String    @id @default(uuid())
+  seekerProfileId String
+  seekerProfile SeekerProfile @relation(fields: [seekerProfileId], references: [id], onDelete: Cascade)
+  name          String
+  createdAt     DateTime  @default(now())
+
+  @@unique([seekerProfileId, name])
+}
+
+model EmployerProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName   String
+  website       String?
+  description   String?   @db.Text
+  logoUrl       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model JobPosting {
+  id            String    @id @default(uuid())
+  title         String
+  description   String    @db.Text
+  requirements  String?   @db.Text
+  location      String
+  salary        String?
+  employerId    String
+  employer      User      @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  tags          JobTag[]
+  applications  Application[]
+}
+
+model JobTag {
+  id            String    @id @default(uuid())
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  name          String
+  createdAt     DateTime  @default(now())
+
+  @@unique([jobPostingId, name])
+}
+
+model Application {
+  id            String    @id @default(uuid())
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  seekerId      String
+  seeker        User      @relation("SeekerApplications", fields: [seekerId], references: [id], onDelete: Cascade)
+  employerId    String
+  employer      User      @relation("EmployerApplications", fields: [employerId], references: [id], onDelete: Cascade)
+  coverLetter   String    @db.Text
+  status        String    @default("PENDING") // PENDING, REVIEWING, ACCEPTED, REJECTED
+  matchScore    Float     @default(0)
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  chatRoom      ChatRoom?
+  activities    ApplicationActivity[]
+}
+
+model ChatRoom {
+  id            String    @id @default(uuid())
+  applicationId String    @unique
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  messages      Message[]
+  participants  ChatRoomParticipant[]
+}
+
+model ChatRoomParticipant {
+  id          String   @id @default(uuid())
+  chatRoomId  String
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id            String    @id @default(uuid())
+  chatRoomId    String
+  chatRoom      ChatRoom  @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId    String
+  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  content       String    @db.Text
+  read          Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+}
+
+// For background job processing
+model JobQueue {
+  id            String    @id @default(uuid())
+  jobType       String    // CV_PARSING, COVER_LETTER_GENERATION
+  status        String    // PENDING, PROCESSING, COMPLETED, FAILED
+  data          String    @db.Text
+  result        String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ApplicationActivity {
+  id             String      @id @default(uuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actorId        String
+  actor          User        @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  type           String      // STATUS_CHANGE, NOTE_ADDED
+  detail         String?     @db.Text
+  createdAt      DateTime    @default(now())
+}
