@@ -12,9 +12,11 @@ export const COVER_LETTER_QUEUE = 'cover-letter-generation';
 export const JOB_MATCHING_QUEUE = 'job-matching';
 
 // Redis connection config
-const redisConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379')
+const redisConnection = process.env.REDIS_URL
+  ? { url: process.env.REDIS_URL }
+  : {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
 };
 
 // Create queues
