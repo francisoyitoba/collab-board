@@ -16,6 +16,8 @@ import path from 'path';
 // Load environment variables
 dotenv.config();
 
+console.log("🧩 Redis URL:", process.env.REDIS_URL);
+
 // Create Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
